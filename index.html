@@ -9,13 +9,24 @@
 		</script>		
 </head>
 <body>
-	
+	<div><a href="#" id="show-all">All</a><a href="#" id="show-complete">Complete</a><a href="#" id="show-incomplete">Incomplete</a></div>
 	<div><span id="completed-count"></span> Completed</div>
 	<input type="text" id="new-todo-name"></input>
 	<ul id="todo-list">
 		
 	</ul>
-	
+	<div>
+		<h3>Completed</h3>
+	<ul id="completed-todo-list">
+		
+	</ul>
+	</div>
+	<div>
+		<h3>Incomplete</h3>
+	<ul id="incomplete-todo-list">
+		
+	</ul>
+	</div>
 	<script>
 		require(['app'], function(){});
 	</script>
