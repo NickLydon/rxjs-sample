@@ -6,6 +6,12 @@ interface Todo {
 	toggle: () => void;
 }
 
+enum show {
+	incomplete,
+	complete,
+	all
+}
+
 var newTodoName = <HTMLInputElement> document.getElementById('new-todo-name'); 
 var todoList = <HTMLUListElement> document.getElementById('todo-list');
 var completedTodoList = <HTMLUListElement> document.getElementById('completed-todo-list');
@@ -50,17 +56,16 @@ var createTodoStream = function() {
 
 var todos = createTodoStream();
 
-var filterTodos = function(finished) {
-	return todos.scan(Rx.Observable.just<Todo[]>([]), (a,b) =>
-		    a.combineLatest(b.finished, (a2,b2) => {			                  
-		        return finished(b2) ? a2.concat([b]) : a2;
-		    })
+var showCompleteEvent = Rx.Observable.fromEvent(showComplete, 'click');
+var showIncompleteEvent = Rx.Observable.fromEvent(showIncomplete, 'click');
+var showAllEvent = Rx.Observable.fromEvent(showAll, 'click');
+
+var showEvent = 
+	showCompleteEvent.map(() => show.complete).merge(
+		showIncompleteEvent.map(() => show.incomplete).merge(
+			showAllEvent.map(() => show.all)
 		)
-		.flatMap(x => x);
-};
-	
-var finishedTodos = filterTodos(x => x);
-var unfinishedTodos = filterTodos(x => !x);
+	);
 
 var completedCount =
 	todos	
@@ -104,7 +109,23 @@ todos.subscribe(todo => {
 		{
 			span.style.textDecoration = x.d; 
 		});	
-	});		
+	});
+	
+	showEvent.combineLatest(todo.finished, (a,b) => { 
+		return { s: a, f: b }; 
+	}).subscribe(x => {
+		switch(x.s) {
+			case show.all:
+			 	li.hidden = false;
+			break;
+			case show.complete:
+				li.hidden = !x.f;
+			break;
+			case show.incomplete:
+				li.hidden = x.f;
+			break;
+		}
+	});
 	
 	todoList.appendChild(li);
 });
@@ -112,24 +133,3 @@ todos.subscribe(todo => {
 completedCount.subscribe(x => {	
 	completedCountContainer.innerHTML = x.toString();
 });
-
-function setupListView(todoList, todoListView) {
-	todoList
-	.subscribe(x => {
-		
-		todoListView.innerHTML = "";
-		
-		x.map(x => {
-			var li = document.createElement('li');
-			li.innerText = x.name;
-			return li;
-		})
-		.forEach(function(li) {
-			todoListView.appendChild(li);
-		});				
-		
-	});
-}
-
-setupListView(finishedTodos, completedTodoList);
-setupListView(unfinishedTodos, incompleteTodoList);
