@@ -1,9 +1,11 @@
-import Rx = require("rx");
+import Rx = require('rx');
+import UIUtil = require('UIUtil');
 
 interface Todo {
-	name: string;
+	name: Rx.Observable<string>;
 	finished: Rx.Observable<boolean>;
 	toggle: (boolean) => void;
+	changeName: (string) => void;
 }
 
 enum show {
@@ -11,6 +13,8 @@ enum show {
 	complete,
 	all
 }
+
+const ENTER_KEY = 13;
 
 var newTodoName = <HTMLInputElement> document.getElementsByClassName('new-todo')[0]; 
 var todoList = <HTMLUListElement> document.getElementsByClassName('todo-list')[0];
@@ -23,13 +27,17 @@ var showIncomplete = <HTMLSpanElement> document.getElementById('show-incomplete'
 var toggleAll = <HTMLInputElement> document.getElementsByClassName('toggle-all')[0];
 
 var createTodo = function(name: string) {
-	var finished = new Rx.ReplaySubject<boolean>();	
+	var finished = new Rx.ReplaySubject<boolean>();		
+	var names = new Rx.ReplaySubject<string>();
 	
 	return {
-		name: name,
+		name: names.startWith(name).distinctUntilChanged(),
 		finished: finished.startWith(false).distinctUntilChanged(),
-		toggle: function(complete) {				
+		toggle: function(complete) {					
 			finished.onNext(complete);
+		},
+		changeName: function(name) {
+			names.onNext(name);
 		}
 	};
 };
@@ -39,7 +47,7 @@ var createTodoStream = function() {
 
 	Rx.Observable
 	.fromEvent(newTodoName, 'keydown')
-	.filter((onkeypress : KeyboardEvent) => onkeypress.keyCode === 13)
+	.filter((onkeypress : KeyboardEvent) => onkeypress.keyCode === ENTER_KEY)
 	.merge(
 		Rx.Observable
 		.fromEvent(newTodoName, 'focusout'))
@@ -65,9 +73,7 @@ var showEvent = (function() {
 	);
 }());
 
-var toggleAllStream = 
-	Rx.Observable.fromEvent(toggleAll, 'change')
-	.map((event : UIEvent) => (<HTMLInputElement> event.target).checked);
+var toggleAllStream = UIUtil.checkboxChange(toggleAll);
 
 var unfinishedCount =
 	todos	
@@ -81,14 +87,13 @@ var unfinishedCount =
 
 todos.subscribe(todo => { 	 
 	newTodoName.value = '';
-	
+
 	var li = document.createElement('li');
 	
 	var div = document.createElement('div');
 	div.classList.add('view');
 	
-	var label = document.createElement('label');	
-	label.innerText = todo.name;
+	var label = document.createElement('label');
 	
 	var checkbox = document.createElement('input');
 	checkbox.setAttribute('type', 'checkbox');
@@ -99,9 +104,41 @@ todos.subscribe(todo => {
 	
 	li.appendChild(div);
 	
-	Rx.Observable
-	.fromEvent(checkbox, 'change')
-	.map((event : UIEvent) => (<HTMLInputElement> event.target).checked)
+	var input = document.createElement('input');
+	input.setAttribute('type', 'text');			
+	input.classList.add('edit');
+	
+	li.appendChild(input);
+	
+	todo.name.subscribe(name => {	
+		input.value = label.innerText = name;
+	});	
+	
+	UIUtil.doubleClick(label)
+	.combineLatest(todo.name, (_,name) => name)
+	.subscribe(name => {
+		label.hidden = true;
+		li.classList.add('editing');
+		
+		input.value = name;
+		input.focus();
+		
+		Rx.Observable
+		.fromEvent(input, 'focusout')
+		.merge(
+			Rx.Observable
+			.fromEvent(input, 'keydown')
+			.filter((onkeypress : KeyboardEvent) => onkeypress.keyCode === ENTER_KEY)
+		)
+		.first()
+		.subscribe(() => {
+			todo.changeName(input.value);
+			label.hidden = false;
+			li.classList.remove('editing');			
+		});
+	});
+	
+	UIUtil.checkboxChange(checkbox)
 	.merge(toggleAllStream)
 	.subscribe(x => {
 		todo.toggle(x);
@@ -121,13 +158,12 @@ todos.subscribe(todo => {
 	});
 	
 	showEvent.combineLatest(todo.finished, (a,b) => { 
-		return { s: a, f: b }; 
+		return { showWhat: a, finished: b }; 
 	}).subscribe(x => {
 		var toggleActive = function(e) {
 			[ showAll, showComplete, showIncomplete ]
 			.forEach(x => {
 				var activeClass = "selected";
-				
 				if(x === e) {
 					x.classList.add(activeClass);
 				} else {
@@ -136,18 +172,18 @@ todos.subscribe(todo => {
 			});				
 		};
 		
-		switch(x.s) {
+		switch(x.showWhat) {
 			case show.all:	
 				toggleActive(showAll);
 			 	li.hidden = false;
 			break;
 			case show.complete:
 				toggleActive(showComplete);
-				li.hidden = !x.f;
+				li.hidden = !x.finished;
 			break;
 			case show.incomplete:
 				toggleActive(showIncomplete);
-				li.hidden = x.f;
+				li.hidden = x.finished;
 			break;
 		}
 	});

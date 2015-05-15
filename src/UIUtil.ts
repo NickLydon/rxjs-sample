@@ -3,7 +3,7 @@ import Rx = require("rx");
 export var doubleClick = function(ele) {
 	return Rx.Observable
 		.fromEvent(ele, 'click')
-		.bufferWithTime(400)
+		.bufferWithTime(500)
 		.filter(x => x.length > 1);
 };
 
