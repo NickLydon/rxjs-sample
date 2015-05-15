@@ -3,7 +3,7 @@ import Rx = require("rx");
 interface Todo {
 	name: string;
 	finished: Rx.Observable<boolean>;
-	toggle: () => void;
+	toggle: (boolean) => void;
 }
 
 enum show {
@@ -20,19 +20,16 @@ var completedCountContainer = <HTMLSpanElement> document.getElementsByClassName(
 var showAll = <HTMLSpanElement> document.getElementById('show-all');
 var showComplete = <HTMLSpanElement> document.getElementById('show-complete');
 var showIncomplete = <HTMLSpanElement> document.getElementById('show-incomplete');
+var toggleAll = <HTMLInputElement> document.getElementsByClassName('toggle-all')[0];
 
 var createTodo = function(name: string) {
 	var finished = new Rx.ReplaySubject<boolean>();	
-	var cacheLatest = new Rx.BehaviorSubject(false);
-	finished.subscribe(cacheLatest);			
 	
 	return {
 		name: name,
 		finished: finished.startWith(false).distinctUntilChanged(),
-		toggle: function() {
-			cacheLatest.take(1).subscribe(x => {				
-				finished.onNext(!x);
-			});
+		toggle: function(complete) {				
+			finished.onNext(complete);
 		}
 	};
 };
@@ -68,6 +65,10 @@ var showEvent = (function() {
 	);
 }());
 
+var toggleAllStream = 
+	Rx.Observable.fromEvent(toggleAll, 'change')
+	.map((event : UIEvent) => (<HTMLInputElement> event.target).checked);
+
 var unfinishedCount =
 	todos	
 	.scan(Rx.Observable.just(0), (a,b) =>
@@ -100,7 +101,12 @@ todos.subscribe(todo => {
 	
 	Rx.Observable
 	.fromEvent(checkbox, 'change')
-	.subscribe(todo.toggle);	
+	.map((event : UIEvent) => (<HTMLInputElement> event.target).checked)
+	.merge(toggleAllStream)
+	.subscribe(x => {
+		todo.toggle(x);
+	 	checkbox.checked = x;
+	});	
 	
 	[
 		{f:(v) => v, d: 'add'}, 
