@@ -1,0 +1,48 @@
+<head>
+	<meta charset="utf-8">
+	<title>RxJS Todo app</title>
+	
+	<link rel="stylesheet" type="text/css" href="../node_modules/todomvc-common/base.css"></link>
+	<link rel="stylesheet" type="text/css" href="../node_modules/todomvc-app-css/index.css"></link>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.17/require.js"></script>	
+		<script>
+			require.config({
+				paths: {
+					"rx": "https://cdnjs.cloudflare.com/ajax/libs/rxjs/2.5.2/rx.all" 
+				}
+			});
+		</script>		
+</head>
+<body>
+	<section class="todoapp">
+		
+		<header class="header">
+			<h1>todos</h1>
+			<input class="new-todo" placeholder="What needs to be done?" autofocus>
+		</header>
+					
+		<section class="main">	
+							
+			<ul class="todo-list"></ul>
+			
+		</section>
+		<footer class="footer">
+			<span class="todo-count"></span>
+			<ul class="filters">
+				<li>
+					<a href="#" id="show-all">All</a>
+				</li>				
+				<li>
+					<a href="#" id="show-incomplete">Active</a>
+				</li>
+				<li>
+					<a href="#" id="show-complete">Completed</a>
+				</li>				
+			</ul>
+		</footer>
+	</section>
+	
+	<script>
+		require(['app'], function(){});
+	</script>
+</body>
