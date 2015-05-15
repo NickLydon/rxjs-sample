@@ -56,22 +56,23 @@ var createTodoStream = function() {
 
 var todos = createTodoStream();
 
-var showCompleteEvent = Rx.Observable.fromEvent(showComplete, 'click');
-var showIncompleteEvent = Rx.Observable.fromEvent(showIncomplete, 'click');
-var showAllEvent = Rx.Observable.fromEvent(showAll, 'click');
-
-var showEvent = 
-	showCompleteEvent.map(() => show.complete).merge(
+var showEvent = (function() {
+	var showCompleteEvent = Rx.Observable.fromEvent(showComplete, 'click');
+	var showIncompleteEvent = Rx.Observable.fromEvent(showIncomplete, 'click');
+	var showAllEvent = Rx.Observable.fromEvent(showAll, 'click');
+ 
+	return showCompleteEvent.map(() => show.complete).merge(
 		showIncompleteEvent.map(() => show.incomplete).merge(
 			showAllEvent.map(() => show.all)
 		)
 	);
+}());
 
-var completedCount =
+var unfinishedCount =
 	todos	
 	.scan(Rx.Observable.just(0), (a,b) =>
 	    a.combineLatest(b.finished, (a2,b2) => {
-	        var bit = x => x ? 1 : 0;          
+	        var bit = x => x ? 0 : 1;          
 	        return a2 + bit(b2);
 	    })
 	)
@@ -148,6 +149,6 @@ todos.subscribe(todo => {
 	todoList.appendChild(li);
 });
 
-completedCount.subscribe(x => {	
-	completedCountContainer.innerHTML = x.toString() + " Completed";
+unfinishedCount.subscribe(x => {	
+	completedCountContainer.innerHTML = x.toString() + " item" + (x === 1 ? "" : "s") + " left";
 });
