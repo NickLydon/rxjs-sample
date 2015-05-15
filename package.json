@@ -1,0 +1,19 @@
+{
+  "name": "rxjs-todo-app",
+  "version": "0.0.0",
+  "description": "",
+  "repository": "",
+  "private": true,
+  "src": "src",
+  "test": "test",
+  "dist": "dist",
+  "mainInput": "app",
+  "mainOutput": "main",
+  "dependencies": {
+    "todomvc-app-css": "2.0.1",
+    "todomvc-common": "1.0.2"
+  },
+  "devDependencies": {
+    "rx": "2.5.2"
+  }
+}
