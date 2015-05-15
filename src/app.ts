@@ -14,8 +14,6 @@ enum show {
 	all
 }
 
-const ENTER_KEY = 13;
-
 var newTodoName = <HTMLInputElement> document.getElementsByClassName('new-todo')[0]; 
 var todoList = <HTMLUListElement> document.getElementsByClassName('todo-list')[0];
 var completedTodoList = <HTMLUListElement> document.getElementById('completed-todo-list');
@@ -27,12 +25,12 @@ var showIncomplete = <HTMLSpanElement> document.getElementById('show-incomplete'
 var toggleAll = <HTMLInputElement> document.getElementsByClassName('toggle-all')[0];
 
 var createTodo = function(name: string) {
-	var finished = new Rx.ReplaySubject<boolean>();		
-	var names = new Rx.ReplaySubject<string>();
+	var finished = new Rx.BehaviorSubject(false);		
+	var names = new Rx.BehaviorSubject(name);
 	
 	return {
-		name: names.startWith(name).distinctUntilChanged(),
-		finished: finished.startWith(false).distinctUntilChanged(),
+		name: names.distinctUntilChanged(),
+		finished: finished.distinctUntilChanged(),
 		toggle: function(complete) {					
 			finished.onNext(complete);
 		},
@@ -45,16 +43,11 @@ var createTodo = function(name: string) {
 var createTodoStream = function() {
 	var todos =	new Rx.ReplaySubject<Todo>();
 
-	Rx.Observable
-	.fromEvent(newTodoName, 'keydown')
-	.filter((onkeypress : KeyboardEvent) => onkeypress.keyCode === ENTER_KEY)
-	.merge(
-		Rx.Observable
-		.fromEvent(newTodoName, 'focusout'))
-	.map(() => newTodoName.value)
-	.filter(x => /\S/.test(x))
-	.map(createTodo)
-	.subscribe(todos);
+	UIUtil.textEntered(newTodoName)
+		.map(() => newTodoName.value)
+		.filter(x => /\S/.test(x))
+		.map(createTodo)
+		.subscribe(todos);
 	
 	return todos;
 };
@@ -123,37 +116,31 @@ todos.subscribe(todo => {
 		input.value = name;
 		input.focus();
 		
-		Rx.Observable
-		.fromEvent(input, 'focusout')
-		.merge(
-			Rx.Observable
-			.fromEvent(input, 'keydown')
-			.filter((onkeypress : KeyboardEvent) => onkeypress.keyCode === ENTER_KEY)
-		)
-		.first()
-		.subscribe(() => {
-			todo.changeName(input.value);
-			label.hidden = false;
-			li.classList.remove('editing');			
-		});
+		UIUtil.textEntered(input)
+			.first()
+			.subscribe(() => {
+				todo.changeName(input.value);
+				label.hidden = false;
+				li.classList.remove('editing');			
+			});
 	});
 	
 	UIUtil.checkboxChange(checkbox)
-	.merge(toggleAllStream)
-	.subscribe(x => {
-		todo.toggle(x);
-	 	checkbox.checked = x;
-	});	
+		.merge(toggleAllStream)
+		.subscribe(x => {
+			todo.toggle(x);
+		 	checkbox.checked = x;
+		});	
 	
 	[
-		{f:(v) => v, d: 'add'}, 
-		{f:(v) => !v, d: 'remove'}
+		{finished:(v) => v, addOrRemove: 'add'}, 
+		{finished:(v) => !v, addOrRemove: 'remove'}
 	].forEach(x => {
 		todo.finished
-		.filter(x.f)
+		.filter(x.finished)
 		.subscribe(_ => 
 		{			
-			li.classList[x.d]('completed'); 
+			li.classList[x.addOrRemove]('completed'); 
 		});	
 	});
 	
