@@ -1,12 +1,6 @@
 import Rx = require('rx');
 import UIUtil = require('UIUtil');
-
-interface Todo {
-	name: Rx.Observable<string>;
-	finished: Rx.Observable<boolean>;
-	toggle: (boolean) => void;
-	changeName: (string) => void;
-}
+import Model = require('model');
 
 enum show {
 	incomplete,
@@ -24,36 +18,12 @@ var showComplete = <HTMLSpanElement> document.getElementById('show-complete');
 var showIncomplete = <HTMLSpanElement> document.getElementById('show-incomplete');
 var toggleAll = <HTMLInputElement> document.getElementsByClassName('toggle-all')[0];
 
-var createTodo = function(name: string) {
-	var finished = new Rx.BehaviorSubject(false);		
-	var names = new Rx.BehaviorSubject(name);
-	
-	return {
-		name: names.distinctUntilChanged(),
-		finished: finished.distinctUntilChanged(),
-		toggle: function(complete) {					
-			finished.onNext(complete);
-		},
-		changeName: function(name) {
-			names.onNext(name);
-		}
-	};
-};
-
-var createTodoStream = function() {
-	var todos =	new Rx.ReplaySubject<Todo>();
-
+var model = Model.createModel(
 	UIUtil.textEntered(newTodoName)
 		.map(() => newTodoName.value)
 		.filter(x => /\S/.test(x))
-		.map(createTodo)
-		.subscribe(todos);
+);
 	
-	return todos;
-};
-
-var todos = createTodoStream();
-
 var showEvent = (function() {
 	var showCompleteEvent = Rx.Observable.fromEvent(showComplete, 'click');
 	var showIncompleteEvent = Rx.Observable.fromEvent(showIncomplete, 'click');
@@ -68,17 +38,7 @@ var showEvent = (function() {
 
 var toggleAllStream = UIUtil.checkboxChange(toggleAll);
 
-var unfinishedCount =
-	todos	
-	.scan(Rx.Observable.just(0), (a,b) =>
-	    a.combineLatest(b.finished, (a2,b2) => {
-	        var bit = x => x ? 0 : 1;          
-	        return a2 + bit(b2);
-	    })
-	)
-	.flatMap(x => x);
-
-todos.subscribe(todo => { 	 
+model.todos.subscribe(todo => { 	 
 	newTodoName.value = '';
 
 	var li = document.createElement('li');
@@ -178,6 +138,6 @@ todos.subscribe(todo => {
 	todoList.appendChild(li);
 });
 
-unfinishedCount.subscribe(x => {	
+model.unfinishedCount.subscribe(x => {	
 	completedCountContainer.innerHTML = x.toString() + " item" + (x === 1 ? "" : "s") + " left";
 });
