@@ -38,25 +38,23 @@ export var createModel = function(nameStream: Rx.Observable<TodoSetup>) {
 		};
 	};
 	
+	var countem = 
+		(shouldCountRemoved: (finished:boolean,removed:boolean) => boolean, 
+		addToFinished: (finished:boolean) => boolean) =>
+			todos.scan(Rx.Observable.just(0), (a,b) => 
+			    a.combineLatest(
+					b.finished.combineLatest(b.removed, shouldCountRemoved), 
+					(tally,finished) => tally + (addToFinished(finished) ? 1 : 0))
+			)
+			.flatMap(x => x);
+ 	
 	nameStream
 		.map(createTodo)
 		.subscribe(todos);
 	
 	return {
 		todos: todos.asObservable(),
-		unfinishedCount: 
-			todos.scan(Rx.Observable.just(0), (a,b) => 
-			    a.combineLatest(
-					b.finished.combineLatest(b.removed, (finished,removed) => finished || removed), 
-					(tally,finished) => tally + (finished ? 0 : 1))
-			)
-			.flatMap(x => x),
-		finishedCount:
-			todos.scan(Rx.Observable.just(0), (a,b) => 
-			    a.combineLatest(
-					b.finished.combineLatest(b.removed, (finished,removed) => finished && !removed), 
-					(tally,finished) => tally + (finished ? 1 : 0))
-			)
-			.flatMap(x => x)
+		unfinishedCount: countem((finished,removed) => finished || removed, finished => !finished),
+		finishedCount: countem((finished,removed) => finished && !removed, finished => finished)
 	};
 };

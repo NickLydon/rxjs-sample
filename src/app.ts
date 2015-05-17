@@ -10,8 +10,6 @@ enum show {
 
 var newTodoName = <HTMLInputElement> document.getElementsByClassName('new-todo')[0]; 
 var todoList = <HTMLUListElement> document.getElementsByClassName('todo-list')[0];
-var completedTodoList = <HTMLUListElement> document.getElementById('completed-todo-list');
-var incompleteTodoList = <HTMLUListElement> document.getElementById('incomplete-todo-list');
 var completedCountContainer = <HTMLSpanElement> document.getElementsByClassName('todo-count')[0];
 var showAll = <HTMLSpanElement> document.getElementById('show-all');
 var showComplete = <HTMLSpanElement> document.getElementById('show-complete');
