@@ -17,11 +17,13 @@ var showAll = <HTMLSpanElement> document.getElementById('show-all');
 var showComplete = <HTMLSpanElement> document.getElementById('show-complete');
 var showIncomplete = <HTMLSpanElement> document.getElementById('show-incomplete');
 var toggleAll = <HTMLInputElement> document.getElementsByClassName('toggle-all')[0];
+var clearCompleted = <HTMLInputElement> document.getElementsByClassName('clear-completed')[0];
 
 var model = Model.createModel(
 	UIUtil.textEntered(newTodoName)
 		.map(() => newTodoName.value)
 		.filter(x => /\S/.test(x))
+		.map(name => ({ name: name, finished: false }))
 );
 	
 var showEvent = (function() {
@@ -51,9 +53,18 @@ model.todos.subscribe(todo => {
 	var checkbox = document.createElement('input');
 	checkbox.setAttribute('type', 'checkbox');
 	checkbox.classList.add('toggle');
+	
+	var destroy = document.createElement('button');
+	destroy.classList.add('destroy');
+	Rx.Observable.fromEvent(destroy, 'click')
+	.first()
+	.subscribe(todo.remove);
+	
+	todo.removed.filter(x => x).subscribe(() => li.remove());
 		
 	div.appendChild(checkbox);
 	div.appendChild(label);
+	div.appendChild(destroy);
 	
 	li.appendChild(div);
 	
@@ -84,6 +95,12 @@ model.todos.subscribe(todo => {
 				li.classList.remove('editing');			
 			});
 	});
+	
+	
+	Rx.Observable.fromEvent(clearCompleted, 'click')
+	.withLatestFrom(todo.finished, (_,x) => x)
+	.filter(x => x)
+	.subscribe(todo.remove);
 	
 	UIUtil.checkboxChange(checkbox)
 		.merge(toggleAllStream)
@@ -138,6 +155,8 @@ model.todos.subscribe(todo => {
 	todoList.appendChild(li);
 });
 
+model.finishedCount.map(x => x === 0).subscribe(x => { clearCompleted.hidden = x; });
+
 model.unfinishedCount.subscribe(x => {	
-	completedCountContainer.innerHTML = x.toString() + " item" + (x === 1 ? "" : "s") + " left";
+	completedCountContainer.innerHTML = x.toString() + " item" + (x === 1 ? "" : "s") + " left";		
 });
