@@ -55,6 +55,16 @@ export var createModel = function(nameStream: Rx.Observable<TodoSetup>) {
 	return {
 		todos: todos.asObservable(),
 		unfinishedCount: countem((finished,removed) => finished || removed, finished => !finished),
-		finishedCount: countem((finished,removed) => finished && !removed, finished => finished)
+		finishedCount: countem((finished,removed) => finished && !removed, finished => finished),
+		allChanges: 
+			todos.scan(Rx.Observable.just(<TodoSetup[]>[]), (acc,value) => {
+				var x = value.name.combineLatest(value.finished, (name, finished) => ({
+					name: name,
+					finished: finished
+				}))
+				.combineLatest(value.removed, (todo,removed) => removed ? [] : [todo]);
+				return acc.combineLatest(x,(a,b) => a.concat(b));
+			})
+			.flatMap(x => x)			
 	};
 };

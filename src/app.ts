@@ -8,28 +8,37 @@ enum show {
 	all
 }
 
-var newTodoName = <HTMLInputElement> document.getElementsByClassName('new-todo')[0]; 
-var todoList = <HTMLUListElement> document.getElementsByClassName('todo-list')[0];
-var completedCountContainer = <HTMLSpanElement> document.getElementsByClassName('todo-count')[0];
-var showAll = <HTMLSpanElement> document.getElementById('show-all');
-var showComplete = <HTMLSpanElement> document.getElementById('show-complete');
-var showIncomplete = <HTMLSpanElement> document.getElementById('show-incomplete');
-var toggleAll = <HTMLInputElement> document.getElementsByClassName('toggle-all')[0];
-var clearCompleted = <HTMLInputElement> document.getElementsByClassName('clear-completed')[0];
-var footer = <HTMLElement> document.getElementsByClassName('footer')[0];
+const newTodoName = <HTMLInputElement> document.getElementsByClassName('new-todo')[0]; 
+const todoList = <HTMLUListElement> document.getElementsByClassName('todo-list')[0];
+const completedCountContainer = <HTMLSpanElement> document.getElementsByClassName('todo-count')[0];
+const showAll = <HTMLSpanElement> document.getElementById('show-all');
+const showComplete = <HTMLSpanElement> document.getElementById('show-complete');
+const showIncomplete = <HTMLSpanElement> document.getElementById('show-incomplete');
+const toggleAll = <HTMLInputElement> document.getElementsByClassName('toggle-all')[0];
+const clearCompleted = <HTMLInputElement> document.getElementsByClassName('clear-completed')[0];
+const footer = <HTMLElement> document.getElementsByClassName('footer')[0];
 
-var model = Model.createModel(
+const localStorageKey = 'todoapp.todolist';
+
+const existingTodos = 
+	Rx.Observable.from(
+		(<Model.TodoSetup[]>JSON.parse(localStorage.getItem(localStorageKey)) || []));
+		
+const newTodos = 
 	UIUtil.textEntered(newTodoName)
 		.map(() => newTodoName.value)
 		.filter(x => /\S/.test(x))
-		.map(name => ({ name: name, finished: false }))
+		.map(name => ({ name: name, finished: false }));
+
+const model = Model.createModel(
+	existingTodos.concat(newTodos)
 );
 	
-var showEvent = (function() {
-	var showCompleteEvent = Rx.Observable.fromEvent(showComplete, 'click');
-	var showIncompleteEvent = Rx.Observable.fromEvent(showIncomplete, 'click');
-	var showAllEvent = Rx.Observable.fromEvent(showAll, 'click');
- 
+const showEvent = (function() {
+	const showCompleteEvent = Rx.Observable.fromEvent(showComplete, 'click');
+	const showIncompleteEvent = Rx.Observable.fromEvent(showIncomplete, 'click');
+	const showAllEvent = Rx.Observable.fromEvent(showAll, 'click');
+ 	
 	return showCompleteEvent.map(() => show.complete).merge(
 		showIncompleteEvent.map(() => show.incomplete).merge(
 			showAllEvent.map(() => show.all)
@@ -37,23 +46,23 @@ var showEvent = (function() {
 	);
 }());
 
-var toggleAllStream = UIUtil.checkboxChange(toggleAll);
+const toggleAllStream = UIUtil.checkboxChange(toggleAll);
 
 model.todos.subscribe(todo => { 	 
 	newTodoName.value = '';
 
-	var li = document.createElement('li');
+	const li = document.createElement('li');
 	
-	var div = document.createElement('div');
+	const div = document.createElement('div');
 	div.classList.add('view');
 	
-	var label = document.createElement('label');
+	const label = document.createElement('label');
 	
-	var checkbox = document.createElement('input');
+	const checkbox = document.createElement('input');
 	checkbox.setAttribute('type', 'checkbox');
 	checkbox.classList.add('toggle');
 	
-	var destroy = document.createElement('button');
+	const destroy = document.createElement('button');
 	destroy.classList.add('destroy');
 	Rx.Observable.fromEvent(destroy, 'click')
 	.first()
@@ -67,7 +76,7 @@ model.todos.subscribe(todo => {
 	
 	li.appendChild(div);
 	
-	var input = document.createElement('input');
+	const input = document.createElement('input');
 	input.setAttribute('type', 'text');			
 	input.classList.add('edit');
 	
@@ -95,7 +104,6 @@ model.todos.subscribe(todo => {
 			});
 	});
 	
-	
 	Rx.Observable.fromEvent(clearCompleted, 'click')
 	.withLatestFrom(todo.finished, (_,x) => x)
 	.filter(x => x)
@@ -103,30 +111,28 @@ model.todos.subscribe(todo => {
 	
 	UIUtil.checkboxChange(checkbox)
 		.merge(toggleAllStream)
-		.subscribe(x => {
-			todo.toggle(x);
-		 	checkbox.checked = x;
-		});	
+		.subscribe(todo.toggle);				
 	
 	[
-		{finished:(v) => v, addOrRemove: 'add'}, 
-		{finished:(v) => !v, addOrRemove: 'remove'}
+		{finished:(v) => v, addOrRemove: 'add', checked: true}, 
+		{finished:(v) => !v, addOrRemove: 'remove', checked: false}
 	].forEach(x => {
 		todo.finished
 		.filter(x.finished)
 		.subscribe(_ => 
 		{			
 			li.classList[x.addOrRemove]('completed'); 
+			checkbox.checked = x.checked;
 		});	
 	});
 	
 	showEvent.combineLatest(todo.finished, (a,b) => { 
 		return { showWhat: a, finished: b }; 
 	}).subscribe(x => {
-		var toggleActive = function(e) {
+		const toggleActive = function(e) {
 			[ showAll, showComplete, showIncomplete ]
 			.forEach(x => {
-				var activeClass = "selected";
+				const activeClass = "selected";
 				if(x === e) {
 					x.classList.add(activeClass);
 				} else {
@@ -160,4 +166,8 @@ model.finishedCount.map(x => x === 0).subscribe(x => clearCompleted.hidden = x);
 
 model.unfinishedCount.subscribe(x => {	
 	completedCountContainer.innerHTML = x.toString() + " item" + (x === 1 ? "" : "s") + " left";		
+});
+
+model.allChanges.map(JSON.stringify).subscribe(x => { 
+	localStorage.setItem(localStorageKey, x);
 });
