@@ -18,6 +18,7 @@ var showComplete = <HTMLSpanElement> document.getElementById('show-complete');
 var showIncomplete = <HTMLSpanElement> document.getElementById('show-incomplete');
 var toggleAll = <HTMLInputElement> document.getElementsByClassName('toggle-all')[0];
 var clearCompleted = <HTMLInputElement> document.getElementsByClassName('clear-completed')[0];
+var footer = <HTMLElement> document.getElementsByClassName('footer')[0];
 
 var model = Model.createModel(
 	UIUtil.textEntered(newTodoName)
@@ -155,7 +156,9 @@ model.todos.subscribe(todo => {
 	todoList.appendChild(li);
 });
 
-model.finishedCount.map(x => x === 0).subscribe(x => { clearCompleted.hidden = x; });
+model.finishedCount.combineLatest(model.unfinishedCount, (a,b) => a + b).map(x => x === 0).subscribe(x => footer.hidden = x);
+
+model.finishedCount.map(x => x === 0).subscribe(x => clearCompleted.hidden = x);
 
 model.unfinishedCount.subscribe(x => {	
 	completedCountContainer.innerHTML = x.toString() + " item" + (x === 1 ? "" : "s") + " left";		
