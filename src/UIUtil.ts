@@ -2,13 +2,6 @@ import Rx = require("rx");
 
 const ENTER_KEY = 13;
 
-export const doubleClick = function(ele) {
-	return Rx.Observable
-		.fromEvent(ele, 'click')
-		.bufferWithTime(500)
-		.filter(x => x.length > 1);
-};
-
 export const checkboxChange = function(ele) {	
 	return Rx.Observable
 		.fromEvent(ele, 'change')

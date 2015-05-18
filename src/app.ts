@@ -89,7 +89,7 @@ model.todos.subscribe(todo => {
 		input.value = label.innerText = name;
 	});	
 	
-	UIUtil.doubleClick(label)
+    Rx.Observable.fromEvent(label,'dblclick')
 	.combineLatest(todo.name, (_,name) => name)
 	.subscribe(name => {
 		label.hidden = true;
@@ -130,7 +130,7 @@ model.todos.subscribe(todo => {
 	});
 	
 	showEvent.combineLatest(todo.finished, (a,b) => { 
-		return { showWhat: a, finished: b }; 
+		return { showWhat: a, finished: b };
 	}).subscribe(x => {
 		const toggleActive = function(e) {
 			[ showAll, showComplete, showIncomplete ]
@@ -145,7 +145,7 @@ model.todos.subscribe(todo => {
 		};
 		
 		switch(x.showWhat) {
-			case show.all:	
+			case show.all:
 				toggleActive(showAll);
 			 	li.hidden = false;
 			break;
