@@ -168,7 +168,7 @@ model.finishedCount.combineLatest(model.unfinishedCount, (a,b) => a + b).map(x =
 model.finishedCount.map(x => x === 0).subscribe(x => clearCompleted.hidden = x);
 
 model.unfinishedCount.subscribe(x => {	
-	completedCountContainer.innerHTML = x.toString() + " item" + (x === 1 ? "" : "s") + " left";		
+	completedCountContainer.innerHTML = `${x} item${x === 1 ? "" : "s"} left`;		
 });
 
 model.allChanges.map(JSON.stringify).subscribe(x => { 
