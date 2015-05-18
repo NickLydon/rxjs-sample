@@ -36,18 +36,7 @@ const model = Model.createModel(
 	
 const showEvent = (function() {
 		
-	const hashChange = (function() {
-		const getRightOfHash = hash => hash.split('#')[1];
-		const sub = new Rx.BehaviorSubject(getRightOfHash(window.location.hash));
-				
-		window.onhashchange = hash => sub.onNext(getRightOfHash(hash.newURL));
-		
-		return sub.asObservable();
-	}());
-
-	const filterTodoStream = name => 
-		hashChange
-		.filter(x => x === name);
+	const filterTodoStream = name => UIUtil.hashChange.filter(x => x === name);
 		
 	const showCompleteEvent = filterTodoStream('Completed');
 	const showIncompleteEvent = filterTodoStream('Active');
