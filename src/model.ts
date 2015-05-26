@@ -48,7 +48,8 @@ export const createModel = function(nameStream: Rx.Observable<TodoSetup>) {
 			)
 			.flatMap(x => x);
  	
-	nameStream
+	nameStream	
+		.filter(x => /\S/.test(x.name))
 		.map(createTodo)
 		.subscribe(todos);
 	

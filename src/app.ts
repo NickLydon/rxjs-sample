@@ -2,7 +2,7 @@ import Rx = require('rx');
 import UIUtil = require('UIUtil');
 import Model = require('model');
 
-enum show {
+const enum show {
 	incomplete,
 	complete,
 	all
@@ -27,7 +27,6 @@ const existingTodos =
 const newTodos = 
 	UIUtil.textEntered(newTodoName)
 		.map(() => newTodoName.value)
-		.filter(x => /\S/.test(x))
 		.map(name => ({ name: name, finished: false }));
 
 const model = Model.createModel(
